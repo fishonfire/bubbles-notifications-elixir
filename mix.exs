@@ -1,4 +1,4 @@
-defmodule BubbleHex.MixProject do
+defmodule BubblesNotifications.MixProject do
   use Mix.Project
 
   @version "0.1.0"
@@ -6,7 +6,7 @@ defmodule BubbleHex.MixProject do
 
   def project do
     [
-      app: :bubble_hex,
+      app: :bubbles_notifications,
       version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
@@ -41,9 +41,10 @@ defmodule BubbleHex.MixProject do
       licenses: ["MIT"],
       links: %{
         "Source" => @source_url,
-        "Docs" => "https://hexdocs.pm/bubble_hex"
+        "Docs" => "https://hexdocs.pm/bubbles_notifications"
       },
-      maintainers: ["Fish on Fire"]
+      maintainers: ["Fish on Fire"],
+      files: ["lib", "mix.exs", "README.md", "LICENSE", ".formatter.exs"]
     ]
   end
 

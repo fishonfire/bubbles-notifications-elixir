@@ -9,7 +9,7 @@ defmodule BubblesNotifications do
 
   The API base URL is read from application config:
 
-      config :bubble_hex,
+      config :bubbles_notifications,
         base_url: "https://your-api.example.com"
   """
 
@@ -46,7 +46,7 @@ defmodule BubblesNotifications do
   @doc """
   Initializes a notification client with the app id and API key.
 
-  The base URL is loaded from `Application.fetch_env!(:bubble_hex, :base_url)`.
+  The base URL is loaded from `Application.fetch_env!(:bubbles_notifications, :base_url)`.
 
   ## Examples
 
@@ -60,8 +60,8 @@ defmodule BubblesNotifications do
       app_id: normalize_app_id(app_id),
       api_key: normalize_api_key(api_key),
       base_url: fetch_base_url!(),
-      headers: Application.get_env(:bubble_hex, :headers, []),
-      receive_timeout: Application.get_env(:bubble_hex, :receive_timeout, 15_000)
+      headers: Application.get_env(:bubbles_notifications, :headers, []),
+      receive_timeout: Application.get_env(:bubbles_notifications, :receive_timeout, 15_000)
     }
   end
 
@@ -109,11 +109,11 @@ defmodule BubblesNotifications do
   end
 
   defp fetch_base_url! do
-    Application.fetch_env!(:bubble_hex, :base_url)
+    Application.fetch_env!(:bubbles_notifications, :base_url)
   rescue
     error in ArgumentError ->
       raise ArgumentError,
-            "missing :base_url configuration for :bubble_hex. Set it in config/config.exs or call Application.put_env(:bubble_hex, :base_url, \"https://your-api.example.com\") before initialize/2. Original error: #{Exception.message(error)}"
+            "missing :base_url configuration for :bubbles_notifications. Set it in config/config.exs or call Application.put_env(:bubbles_notifications, :base_url, \"https://your-api.example.com\") before initialize/2. Original error: #{Exception.message(error)}"
   end
 
   defp fetch_required(attrs, key) do

@@ -1,6 +1,6 @@
 # BubblesNotifications
 
-`bubble_hex` is the Hex package that provides the `BubblesNotifications` client for the Bubbles Push Notifications API.
+`bubbles_notifications` is the Hex package that provides the `BubblesNotifications` client for the Bubbles Push Notifications API.
 
 ## Public API
 
@@ -12,12 +12,12 @@
 
 ## Installation
 
-Add `bubble_hex` to your list of dependencies in `mix.exs`:
+Add `bubbles_notifications` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:bubble_hex, "~> 0.1.0"}
+    {:bubbles_notifications, "~> 0.1.0"}
   ]
 end
 ```
@@ -27,14 +27,14 @@ end
 Set the API base URL in your config:
 
 ```elixir
-config :bubble_hex,
+config :bubbles_notifications,
   base_url: "https://your-api.example.com"
 ```
 
 Optional config:
 
 ```elixir
-config :bubble_hex,
+config :bubbles_notifications,
   headers: [{"x-request-source", "my-app"}],
   receive_timeout: 15_000
 ```
@@ -78,12 +78,6 @@ BubblesNotifications.create_notification(client, %{
 - `422` returns `{:error, %{status: 422, body: %{"errors" => ...}}}`
 - missing required input fields return `{:error, %ArgumentError{...}}`
 
-## Publishing notes
-
-Before publishing, replace the placeholder metadata in `mix.exs`:
-
-- `maintainers`
-- `@source_url`
 
 ## Development
 

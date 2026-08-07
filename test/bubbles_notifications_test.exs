@@ -7,12 +7,12 @@ defmodule BubblesNotificationsTest do
     bypass = Bypass.open()
     base_url = "http://localhost:#{bypass.port}"
 
-    Application.put_env(:bubble_hex, :base_url, base_url)
+    Application.put_env(:bubbles_notifications, :base_url, base_url)
 
     on_exit(fn ->
-      Application.delete_env(:bubble_hex, :base_url)
-      Application.delete_env(:bubble_hex, :headers)
-      Application.delete_env(:bubble_hex, :receive_timeout)
+      Application.delete_env(:bubbles_notifications, :base_url)
+      Application.delete_env(:bubbles_notifications, :headers)
+      Application.delete_env(:bubbles_notifications, :receive_timeout)
     end)
 
     %{bypass: bypass, base_url: base_url}
@@ -35,14 +35,14 @@ defmodule BubblesNotificationsTest do
       assert Jason.decode!(body) == %{
                "app_id" => 7,
                "title" => "New message",
-               "body" => "Hello from BubbleHex",
+               "body" => "Hello from BubblesNotifications",
                "data" => %{"user_id" => 123, "type" => "message"}
              }
 
       Plug.Conn.resp(
         conn,
         201,
-        ~s({"id":99,"app_id":7,"title":"New message","body":"Hello from BubbleHex","data":{"user_id":123,"type":"message"},"created_at":"2026-08-06T12:00:00Z"})
+        ~s({"id":99,"app_id":7,"title":"New message","body":"Hello from BubblesNotifications","data":{"user_id":123,"type":"message"},"created_at":"2026-08-06T12:00:00Z"})
       )
     end)
 
@@ -53,13 +53,13 @@ defmodule BubblesNotificationsTest do
               "id" => 99,
               "app_id" => 7,
               "title" => "New message",
-              "body" => "Hello from BubbleHex",
+              "body" => "Hello from BubblesNotifications",
               "data" => %{"user_id" => 123, "type" => "message"},
               "created_at" => "2026-08-06T12:00:00Z"
             }} =
              BubblesNotifications.create_notification(client, %{
                title: "New message",
-               body: "Hello from BubbleHex",
+               body: "Hello from BubblesNotifications",
                data: %{user_id: 123, type: "message"}
              })
   end
