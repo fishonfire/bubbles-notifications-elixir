@@ -6,6 +6,7 @@ defmodule BubblesNotifications do
 
     * `initialize/2` - builds a reusable client with `app_id` and `api_key`
     * `create_notification/2` - posts a notification using that client
+    * `send_push_to_device/3` - sends a push directly to a device id
 
   The API base URL is read from application config:
 
@@ -26,11 +27,14 @@ defmodule BubblesNotifications do
           receive_timeout: non_neg_integer()
         }
 
-  @type notification_params :: %{
+  @type message_params :: %{
           required(:title) => String.t(),
           required(:body) => String.t(),
           required(:data) => map()
         }
+
+  @type notification_params :: message_params()
+  @type device_push_params :: message_params()
 
   @type notification :: %{required(String.t()) => term()}
 
@@ -40,8 +44,6 @@ defmodule BubblesNotifications do
         }
 
   @type response :: {:ok, notification()} | {:error, error_response() | Exception.t()}
-
-  @notification_path "/api/notifications/create"
 
   @doc """
   Initializes a notification client with the app id and API key.
@@ -78,17 +80,36 @@ defmodule BubblesNotifications do
   """
   @spec create_notification(t(), notification_params()) :: response()
   def create_notification(%__MODULE__{} = client, attrs) when is_map(attrs) do
+    with {:ok, payload} <- build_message_payload(attrs) do
+      payload = Map.put(payload, :app_id, client.app_id)
+      Client.post(client_request_opts(client), "/api/notifications/create", payload)
+    end
+  end
+
+  @doc """
+  Sends a push notification directly to a device id.
+
+  The payload must include:
+
+    * `:title`
+    * `:body`
+    * `:data`
+  """
+  @spec send_push_to_device(t(), integer() | String.t() | charlist(), device_push_params()) ::
+          response()
+  def send_push_to_device(%__MODULE__{} = client, device_id, attrs) when is_map(attrs) do
+    with {:ok, payload} <- build_message_payload(attrs) do
+      path = "/api/devices/#{URI.encode(normalize_resource_id(device_id))}/send-push"
+
+      Client.post(client_request_opts(client), path, payload)
+    end
+  end
+
+  defp build_message_payload(attrs) do
     with {:ok, title} <- fetch_required(attrs, :title),
          {:ok, body} <- fetch_required(attrs, :body),
          {:ok, data} when is_map(data) <- fetch_required(attrs, :data) do
-      payload = %{
-        app_id: client.app_id,
-        title: title,
-        body: body,
-        data: data
-      }
-
-      Client.post(client_request_opts(client), @notification_path, payload)
+      {:ok, %{title: title, body: body, data: data}}
     else
       {:ok, invalid_data} ->
         {:error,
@@ -152,5 +173,13 @@ defmodule BubblesNotifications do
 
   defp normalize_api_key(_api_key) do
     raise ArgumentError, "api_key must be a string or charlist"
+  end
+
+  defp normalize_resource_id(id) when is_integer(id), do: Integer.to_string(id)
+  defp normalize_resource_id(id) when is_binary(id), do: id
+  defp normalize_resource_id(id) when is_list(id), do: to_string(id)
+
+  defp normalize_resource_id(_id) do
+    raise ArgumentError, "resource id must be an integer, string, or charlist"
   end
 end

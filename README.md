@@ -6,9 +6,11 @@
 
 - `BubblesNotifications.initialize/2`
 - `BubblesNotifications.create_notification/2`
+- `BubblesNotifications.send_push_to_device/3`
 
 `initialize/2` creates a reusable client with your `app_id` and bearer `api_key`.
 `create_notification/2` sends notifications for that initialized app.
+`send_push_to_device/3` sends a push directly to a device id.
 
 ## Installation
 
@@ -53,9 +55,18 @@ BubblesNotifications.create_notification(client, %{
   }
 })
 #=> {:ok, %{"id" => 1, "app_id" => 42, ...}}
+
+BubblesNotifications.send_push_to_device(client, "device-123", %{
+  title: "Direct push",
+  body: "This goes to one device",
+  data: %{
+    additionalProp1: %{}
+  }
+})
+#=> {:ok, %{"device_id" => "device-123", ...}}
 ```
 
-## Request shape
+## Request shapes
 
 `create_notification/2` sends this payload to `POST /api/notifications/create`:
 
@@ -67,6 +78,18 @@ BubblesNotifications.create_notification(client, %{
   "data": {
     "user_id": 123,
     "type": "message"
+  }
+}
+```
+
+`send_push_to_device/3` sends this payload to `POST /api/devices/{id}/send-push`:
+
+```json
+{
+  "title": "string",
+  "body": "string",
+  "data": {
+    "additionalProp1": {}
   }
 }
 ```

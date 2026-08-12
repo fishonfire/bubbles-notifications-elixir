@@ -103,4 +103,56 @@ defmodule BubblesNotificationsTest do
                body: "Body"
              })
   end
+
+  test "send_push_to_device/3 posts to the device endpoint with the expected payload", %{
+    bypass: bypass
+  } do
+    Bypass.expect_once(bypass, "POST", "/api/devices/device-123/send-push", fn conn ->
+      assert Plug.Conn.get_req_header(conn, "authorization") == ["Bearer test-api-key"]
+
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      assert Jason.decode!(body) == %{
+               "title" => "Direct push",
+               "body" => "Device message",
+               "data" => %{"additionalProp1" => %{}}
+             }
+
+      Plug.Conn.resp(
+        conn,
+        201,
+        ~s({"device_id":"device-123","title":"Direct push","body":"Device message","data":{"additionalProp1":{}}})
+      )
+    end)
+
+    client = BubblesNotifications.initialize(7, "test-api-key")
+
+    assert {:ok,
+            %{
+              "device_id" => "device-123",
+              "title" => "Direct push",
+              "body" => "Device message",
+              "data" => %{"additionalProp1" => %{}}
+            }} =
+             BubblesNotifications.send_push_to_device(client, "device-123", %{
+               title: "Direct push",
+               body: "Device message",
+               data: %{additionalProp1: %{}}
+             })
+  end
+
+  test "send_push_to_device/3 returns unauthorized errors", %{bypass: bypass} do
+    Bypass.expect_once(bypass, "POST", "/api/devices/44/send-push", fn conn ->
+      Plug.Conn.resp(conn, 401, ~s({"error":"unauthorized"}))
+    end)
+
+    client = BubblesNotifications.initialize(7, "bad-key")
+
+    assert {:error, %{status: 401, body: %{"error" => "unauthorized"}}} =
+             BubblesNotifications.send_push_to_device(client, 44, %{
+               title: "Direct push",
+               body: "Denied",
+               data: %{}
+             })
+  end
 end
