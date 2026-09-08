@@ -133,7 +133,7 @@ defmodule BubblesNotifications do
       payload = Map.put(payload, :app_id, client.app_id)
       payload = Map.put(payload, :user_ids, user_ids)
       payload = Map.put(payload, :aliases, aliases)
-      Client.post(client_request_opts(client), "/api/notifications/user-id/alias", payload)
+      Client.post(client_request_opts(client), "/api/notifications/bulk-send", payload)
     end
   end
 
