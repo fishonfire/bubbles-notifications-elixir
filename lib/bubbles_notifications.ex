@@ -87,21 +87,53 @@ defmodule BubblesNotifications do
   end
 
   @doc """
-  Sends a push notification directly to a device id.
+  Creates a notification for the given device id.
 
   The payload must include:
 
     * `:title`
     * `:body`
     * `:data`
+
+  `:app_id` is taken from the initialized client.
   """
   @spec send_push_to_device(t(), integer() | String.t() | charlist(), device_push_params()) ::
           response()
   def send_push_to_device(%__MODULE__{} = client, device_id, attrs) when is_map(attrs) do
     with {:ok, payload} <- build_message_payload(attrs) do
-      path = "/api/devices/#{URI.encode(normalize_resource_id(device_id))}/send-push"
+      payload = Map.put(payload, :app_id, client.app_id)
+      path = "/api/notifications/send-push/#{URI.encode(normalize_resource_id(device_id))}"
 
       Client.post(client_request_opts(client), path, payload)
+    end
+  end
+
+  @doc """
+  Creates a notification for devices with the given user ID strings and
+  for devices with at least one of the given alias strings.
+
+  The payload must include:
+
+    * `:title`
+    * `:body`
+    * `:data`
+
+  `:app_id` is taken from the initialized client.
+  """
+  @spec create_notification_user_ids_aliases(
+          t(),
+          [String.t()],
+          [String.t()],
+          device_push_params()
+        ) ::
+          response()
+  def create_notification_user_ids_aliases(%__MODULE__{} = client, user_ids, aliases, attrs)
+      when is_map(attrs) do
+    with {:ok, payload} <- build_message_payload(attrs) do
+      payload = Map.put(payload, :app_id, client.app_id)
+      payload = Map.put(payload, :user_ids, user_ids)
+      payload = Map.put(payload, :aliases, aliases)
+      Client.post(client_request_opts(client), "/api/notifications/user-id/alias", payload)
     end
   end
 
