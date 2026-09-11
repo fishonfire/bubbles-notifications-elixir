@@ -107,12 +107,13 @@ defmodule BubblesNotificationsTest do
   test "send_push_to_device/3 posts to the device endpoint with the expected payload", %{
     bypass: bypass
   } do
-    Bypass.expect_once(bypass, "POST", "/api/devices/device-123/send-push", fn conn ->
+    Bypass.expect_once(bypass, "POST", "/api/notifications/send-push/device-123", fn conn ->
       assert Plug.Conn.get_req_header(conn, "authorization") == ["Bearer test-api-key"]
 
       {:ok, body, conn} = Plug.Conn.read_body(conn)
 
       assert Jason.decode!(body) == %{
+               "app_id" => 7,
                "title" => "Direct push",
                "body" => "Device message",
                "data" => %{"additionalProp1" => %{}}
@@ -142,7 +143,7 @@ defmodule BubblesNotificationsTest do
   end
 
   test "send_push_to_device/3 returns unauthorized errors", %{bypass: bypass} do
-    Bypass.expect_once(bypass, "POST", "/api/devices/44/send-push", fn conn ->
+    Bypass.expect_once(bypass, "POST", "/api/notifications/send-push/44", fn conn ->
       Plug.Conn.resp(conn, 401, ~s({"error":"unauthorized"}))
     end)
 
@@ -154,5 +155,51 @@ defmodule BubblesNotificationsTest do
                body: "Denied",
                data: %{}
              })
+  end
+
+  test "create_notification_user_ids_aliases/4 posts user ids and aliases", %{bypass: bypass} do
+    Bypass.expect_once(bypass, "POST", "/notifications/user-id/alias", fn conn ->
+      assert Plug.Conn.get_req_header(conn, "authorization") == ["Bearer test-api-key"]
+
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      assert Jason.decode!(body) == %{
+               "app_id" => 7,
+               "user_ids" => ["user-123", "user-456"],
+               "aliases" => ["team:eng", "beta"],
+               "title" => "Segment push",
+               "body" => "Alias message",
+               "data" => %{"type" => "segment"}
+             }
+
+      Plug.Conn.resp(
+        conn,
+        201,
+        ~s({"id":100,"app_id":7,"user_ids":["user-123","user-456"],"aliases":["team:eng","beta"],"title":"Segment push","body":"Alias message","data":{"type":"segment"}})
+      )
+    end)
+
+    client = BubblesNotifications.initialize(7, "test-api-key")
+
+    assert {:ok,
+            %{
+              "id" => 100,
+              "app_id" => 7,
+              "user_ids" => ["user-123", "user-456"],
+              "aliases" => ["team:eng", "beta"],
+              "title" => "Segment push",
+              "body" => "Alias message",
+              "data" => %{"type" => "segment"}
+            }} =
+             BubblesNotifications.create_notification_user_ids_aliases(
+               client,
+               ["user-123", "user-456"],
+               ["team:eng", "beta"],
+               %{
+                 title: "Segment push",
+                 body: "Alias message",
+                 data: %{type: "segment"}
+               }
+             )
   end
 end
