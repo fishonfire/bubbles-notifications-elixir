@@ -4,3 +4,4 @@
 /doc/
 /.elixir_ls/
 *.ez
+*.tar

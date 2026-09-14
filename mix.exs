@@ -2,7 +2,7 @@ defmodule BubblesNotifications.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/fishonfire/bubbles_notifications"
+  @source_url "https://github.com/fishonfire/bubbles-notifications-elixir"
 
   def project do
     [
@@ -39,7 +39,7 @@ defmodule BubblesNotifications.MixProject do
 
   defp package do
     [
-      licenses: ["MIT"],
+      licenses: ["GPL-3.0-only"],
       links: %{
         "Source" => @source_url,
         "Docs" => "https://hexdocs.pm/bubbles_notifications"

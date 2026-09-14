@@ -7,10 +7,12 @@
 - `BubblesNotifications.initialize/2`
 - `BubblesNotifications.create_notification/2`
 - `BubblesNotifications.send_push_to_device/3`
+- `BubblesNotifications.create_notification_user_ids_aliases/4`
 
 `initialize/2` creates a reusable client with your `app_id` and bearer `api_key`.
 `create_notification/2` sends notifications for that initialized app.
 `send_push_to_device/3` sends a push directly to a device id.
+`create_notification_user_ids_aliases/4` sends a push to matching user IDs and aliases.
 
 ## Installation
 
@@ -82,7 +84,7 @@ BubblesNotifications.send_push_to_device(client, "device-123", %{
 }
 ```
 
-`send_push_to_device/3` sends this payload to `POST /api/devices/{id}/send-push`:
+`send_push_to_device/3` sends this payload to `POST /api/notifications/send-push/{id}`:
 
 ```json
 {
@@ -91,6 +93,19 @@ BubblesNotifications.send_push_to_device(client, "device-123", %{
   "data": {
     "additionalProp1": {}
   }
+}
+```
+
+`create_notification_user_ids_aliases/4` sends this payload to `POST /api/notifications/bulk-send`:
+
+```json
+{
+  "app_id": 42,
+  "user_ids": ["user-123"],
+  "aliases": ["team:eng"],
+  "title": "string",
+  "body": "string",
+  "data": {}
 }
 ```
 
@@ -111,7 +126,7 @@ mix test
 ```
 
 ## Example application
-A example application can be found at: https://github.com/fishonfire/bubbles-notifications-elixir-example
+An example application can be found at: https://github.com/fishonfire/bubbles-notifications-elixir-example
 
 ## Contributors
 - Simon de la Court (https://github.com/simondelacourt)
@@ -121,4 +136,4 @@ A example application can be found at: https://github.com/fishonfire/bubbles-not
 ## Copyright and Licence
 Copyright (c) 2026, Fish on Fire.
 
-Source code is licensed under the [`GPL License`](https://github.com/fishonfire/bubbles-notifications-elixir/blob/develop/LICENSE).
+Source code is licensed under the [`GPL-3.0-only License`](https://github.com/fishonfire/bubbles-notifications-elixir/blob/develop/LICENSE).

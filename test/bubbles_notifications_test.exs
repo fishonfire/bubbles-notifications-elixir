@@ -158,7 +158,7 @@ defmodule BubblesNotificationsTest do
   end
 
   test "create_notification_user_ids_aliases/4 posts user ids and aliases", %{bypass: bypass} do
-    Bypass.expect_once(bypass, "POST", "/notifications/user-id/alias", fn conn ->
+    Bypass.expect_once(bypass, "POST", "/api/notifications/bulk-send", fn conn ->
       assert Plug.Conn.get_req_header(conn, "authorization") == ["Bearer test-api-key"]
 
       {:ok, body, conn} = Plug.Conn.read_body(conn)
