@@ -110,6 +110,9 @@ Run tests with:
 mix test
 ```
 
+## Example application
+A example application can be found at: https://github.com/fishonfire/bubbles-notifications-elixir-example
+
 ## Contributors
 - Simon de la Court (https://github.com/simondelacourt)
 - Jan Deen (https://github.com/Jan-F15H)
