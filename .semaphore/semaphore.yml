@@ -1,0 +1,63 @@
+version: v1.0
+name: Elixir Hex Package CI
+
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2404
+
+fail_fast:
+  stop:
+    when: branch != 'main'
+auto_cancel:
+  running:
+    when: branch != 'main'
+  queued:
+    when: branch = 'main'
+
+global_job_config:
+  prologue:
+    commands:
+      - checkout
+      - sem-version elixir 1.16
+      - sem-version erlang 26.2
+      - mix local.hex --force
+      - mix local.rebar --force
+      - cache restore
+
+blocks:
+  - name: Install dependencies
+    dependencies: []
+    task:
+      jobs:
+        - name: mix deps.get
+          commands:
+            - mix deps.get
+            - cache store
+
+  - name: Format
+    dependencies:
+      - Install dependencies
+    task:
+      jobs:
+        - name: mix format
+          commands:
+            - mix format --check-formatted
+
+  - name: Credo
+    dependencies:
+      - Install dependencies
+    task:
+      jobs:
+        - name: mix credo
+          commands:
+            - mix credo --strict
+
+  - name: Tests
+    dependencies:
+      - Install dependencies
+    task:
+      jobs:
+        - name: mix test
+          commands:
+            - mix test --color
