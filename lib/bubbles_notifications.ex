@@ -133,8 +133,10 @@ defmodule BubblesNotifications do
     Application.fetch_env!(:bubbles_notifications, :base_url)
   rescue
     error in ArgumentError ->
-      raise ArgumentError,
-            "missing :base_url configuration for :bubbles_notifications. Set it in config/config.exs or call Application.put_env(:bubbles_notifications, :base_url, \"https://your-api.example.com\") before initialize/2. Original error: #{Exception.message(error)}"
+      reraise ArgumentError.exception(
+                "missing :base_url configuration for :bubbles_notifications. Set it in config/config.exs or call Application.put_env(:bubbles_notifications, :base_url, \"https://your-api.example.com\") before initialize/2. Original error: #{Exception.message(error)}"
+              ),
+              __STACKTRACE__
   end
 
   defp fetch_required(attrs, key) do

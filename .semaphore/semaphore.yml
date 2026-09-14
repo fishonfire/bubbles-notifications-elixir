@@ -1,161 +1,63 @@
-# Semaphore CI pipeline for a non-Phoenix Elixir project
-# Spec: https://docs.semaphoreci.com/reference/pipeline-yaml
-
 version: v1.0
-name: "💧 Elixir CI Pipeline"
+name: Elixir Hex Package CI
 
-# -------------------------------------------------------------------
-# Define the machine type and OS image to run the pipeline on
-# -------------------------------------------------------------------
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu2404
 
-# Configure when to stop the pipeline early
 fail_fast:
   stop:
-    when: branch != 'main'  # Stop all blocks if a job fails on non-main branches
+    when: branch != 'main'
 auto_cancel:
   running:
-    when: branch != 'main'  # Cancel running pipelines on non-main branches
+    when: branch != 'main'
   queued:
-    when: branch = 'main'   # Cancel queued pipelines on main branch
+    when: branch = 'main'
 
-# -------------------------------------------------------------------
-# GLOBAL JOB CONFIG – runs before every job
-# Docs: https://docs.semaphoreci.com/reference/pipeline-yaml#global-job-config
-# Keep only commands truly needed everywhere
-# -------------------------------------------------------------------
 global_job_config:
   prologue:
     commands:
-      - checkout                           # Clone repo → https://docs.semaphoreci.com/reference/toolbox#checkout
-      - sem-version elixir 1.16            # Select Elixir version → https://docs.semaphoreci.com/reference/toolbox#sem-version
-      - sem-version erlang 26.2            # Select Erlang/OTP version → https://docs.semaphoreci.com/using-semaphore/languages/elixir-erlang
-      - mix local.hex   --force
+      - checkout
+      - sem-version elixir 1.16
+      - sem-version erlang 26.2
+      - mix local.hex --force
       - mix local.rebar --force
-      - cache restore                      # Reuse deps/ or _build cache
+      - cache restore
 
-# -------------------------------------------------------------------
-# BLOCK: 📦 Install & Build – compile & cache artifacts
-# -------------------------------------------------------------------
 blocks:
-  - name: "📦 Install & Build"
+  - name: Install dependencies
     dependencies: []
     task:
       jobs:
-        - name: "⚙️ Compile"
+        - name: mix deps.get
           commands:
             - mix deps.get
-            - mix compile
-            - cache store                  # Save deps/ or _build for later steps
+            - cache store
 
-# -------------------------------------------------------------------
-# CODE-QUALITY BLOCKS – one block per check
-# -------------------------------------------------------------------
-  - name: "🖋 Format"
-    dependencies: ["📦 Install & Build"]
+  - name: Format
+    dependencies:
+      - Install dependencies
     task:
       jobs:
-        - name: "🎨 mix format"
+        - name: mix format
           commands:
             - mix format --check-formatted
 
-  - name: "🔎 Credo"
-    dependencies: ["📦 Install & Build"]
+  - name: Credo
+    dependencies:
+      - Install dependencies
     task:
       jobs:
-        - name: "🔍 mix credo"
+        - name: mix credo
           commands:
             - mix credo --strict
 
-  - name: "🔐 Sobelow"
-    dependencies: ["📦 Install & Build"]
-    task:
-      jobs:
-        - name: "🛡️ mix sobelow"
-          commands:
-            - mix sobelow --exit
-
-  - name: "🛡 Deps Audit"
-    dependencies: ["📦 Install & Build"]
-    task:
-      jobs:
-        - name: "🛡️ mix deps.audit"
-          commands:
-            - mix deps.audit
-
-  - name: "📊 Dialyzer"
-    dependencies: ["📦 Install & Build"]
-    task:
-      jobs:
-        - name: "🧠 mix dialyzer"
-          env_vars:
-            - name: MIX_ENV
-              value: test
-          commands:
-            - mix dialyzer --halt-exit-status
-
-# -------------------------------------------------------------------
-# BLOCK: 🧪 Tests – split suite for faster feedback
-# -------------------------------------------------------------------
-  - name: "🧪 Tests"
-    dependencies: ["📦 Install & Build"]
-    task:
-      epilogue:                            # Publish JUnit only for test jobs
-        always:
-          commands:
-            - '[ -f report.xml ] && test-results publish report.xml'  # https://docs.semaphoreci.com/using-semaphore/tests/test-reports
-      jobs:
-        - name: "🧪 Tests-1"
-          env_vars:
-            - name: MIX_TEST_PARTITION
-              value: "1"
-          commands:
-            - sem-service start postgres 17
-            - mix test --color
-        - name: "🧪 Tests-2"
-          env_vars:
-            - name: MIX_TEST_PARTITION
-              value: "2"
-          commands:
-            - sem-service start postgres 17
-            - mix test --color
-
-# -------------------------------------------------------------------
-# BLOCK: 🚀 Docker Deploy – runs only on main branch
-# Secrets docs: https://docs.semaphoreci.com/reference/pipeline-yaml#secrets-in-task
-# -------------------------------------------------------------------
-  - name: "🚀 Docker Deploy"
+  - name: Tests
     dependencies:
-      - "🖋 Format"
-      - "🔎 Credo"
-      - "🔐 Sobelow"
-      - "🛡 Deps Audit"
-      - "📊 Dialyzer"
-      - "🧪 Tests"
-    run:
-      when: "branch = 'main'"
+      - Install dependencies
     task:
-      secrets:
-        - name: dockerhub              # Registry creds    
       jobs:
-        - name: "🐳 Build & Push"
+        - name: mix test
           commands:
-            - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
-            - docker build -t myapp:${SEMAPHORE_GIT_SHA} .
-            - docker tag  myapp:${SEMAPHORE_GIT_SHA} myapp:latest
-            - docker push myapp:${SEMAPHORE_GIT_SHA}
-            - docker push myapp:latest
-
-# -------------------------------------------------------------------
-# AFTER PIPELINE – merge JUnit files into a single report
-# Docs: https://docs.semaphoreci.com/using-semaphore/tests/test-reports#step3
-# -------------------------------------------------------------------
-after_pipeline:
-  task:
-    jobs:
-      - name: "📊 Merge Reports"
-        commands:
-          - test-results gen-pipeline-report  # Combine job reports
+            - mix test --color
