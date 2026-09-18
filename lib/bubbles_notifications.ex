@@ -33,7 +33,13 @@ defmodule BubblesNotifications do
           required(:data) => map()
         }
 
-  @type notification_params :: message_params()
+  @type attribute_filters :: map()
+  @type notification_params :: %{
+          required(:title) => String.t(),
+          required(:body) => String.t(),
+          required(:data) => map(),
+          optional(:attribute_filters) => attribute_filters()
+        }
   @type device_push_params :: message_params()
 
   @type notification :: %{required(String.t()) => term()}
@@ -75,12 +81,14 @@ defmodule BubblesNotifications do
     * `:title`
     * `:body`
     * `:data`
+    * `:attribute_filters` (optional)
 
   `:app_id` is taken from the initialized client.
   """
   @spec create_notification(t(), notification_params()) :: response()
   def create_notification(%__MODULE__{} = client, attrs) when is_map(attrs) do
     with {:ok, payload} <- build_message_payload(attrs) do
+      payload = put_optional_attribute_filters(payload, attrs)
       payload = Map.put(payload, :app_id, client.app_id)
       Client.post(client_request_opts(client), "/api/notifications/create", payload)
     end
@@ -117,6 +125,7 @@ defmodule BubblesNotifications do
     * `:title`
     * `:body`
     * `:data`
+    * `:attribute_filters` (optional)
 
   `:app_id` is taken from the initialized client.
   """
@@ -124,12 +133,13 @@ defmodule BubblesNotifications do
           t(),
           [String.t()],
           [String.t()],
-          device_push_params()
+          notification_params()
         ) ::
           response()
   def create_notification_user_ids_aliases(%__MODULE__{} = client, user_ids, aliases, attrs)
       when is_map(attrs) do
     with {:ok, payload} <- build_message_payload(attrs) do
+      payload = put_optional_attribute_filters(payload, attrs)
       payload = Map.put(payload, :app_id, client.app_id)
       payload = Map.put(payload, :user_ids, user_ids)
       payload = Map.put(payload, :aliases, aliases)
@@ -149,6 +159,14 @@ defmodule BubblesNotifications do
 
       {:error, message} ->
         {:error, ArgumentError.exception(message)}
+    end
+  end
+
+  defp put_optional_attribute_filters(payload, attrs) do
+    case fetch_optional(attrs, :attribute_filters) do
+      {:ok, nil} -> payload
+      {:ok, attribute_filters} -> Map.put(payload, :attribute_filters, attribute_filters)
+      :error -> payload
     end
   end
 
@@ -183,6 +201,16 @@ defmodule BubblesNotifications do
           {:ok, value} -> {:ok, value}
           :error -> {:error, "missing required notification field: #{inspect(key)}"}
         end
+    end
+  end
+
+  defp fetch_optional(attrs, key) do
+    case Map.fetch(attrs, key) do
+      {:ok, value} ->
+        {:ok, value}
+
+      :error ->
+        Map.fetch(attrs, Atom.to_string(key))
     end
   end
 

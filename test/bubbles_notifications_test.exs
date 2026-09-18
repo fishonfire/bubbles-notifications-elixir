@@ -79,6 +79,46 @@ defmodule BubblesNotificationsTest do
              })
   end
 
+  test "create_notification/2 sends attribute filters when provided", %{bypass: bypass} do
+    Bypass.expect_once(bypass, "POST", "/api/notifications/create", fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      assert Jason.decode!(body) == %{
+               "app_id" => 7,
+               "title" => "Filtered push",
+               "body" => "Only NL devices",
+               "data" => %{"screen" => "tips"},
+               "attribute_filters" => %{
+                 "mode" => "all",
+                 "conditions" => [
+                   %{
+                     "key" => "country",
+                     "operator" => "equals",
+                     "value" => "NL"
+                   }
+                 ]
+               }
+             }
+
+      Plug.Conn.resp(conn, 201, ~s({"id":101,"app_id":7}))
+    end)
+
+    client = BubblesNotifications.initialize(7, "test-api-key")
+
+    assert {:ok, %{"id" => 101, "app_id" => 7}} =
+             BubblesNotifications.create_notification(client, %{
+               title: "Filtered push",
+               body: "Only NL devices",
+               data: %{"screen" => "tips"},
+               attribute_filters: %{
+                 mode: "all",
+                 conditions: [
+                   %{key: "country", operator: "equals", value: "NL"}
+                 ]
+               }
+             })
+  end
+
   test "create_notification/2 returns validation errors", %{bypass: bypass} do
     Bypass.expect_once(bypass, "POST", "/api/notifications/create", fn conn ->
       Plug.Conn.resp(conn, 422, ~s({"errors":{"title":["can't be blank"]}}))
@@ -138,7 +178,12 @@ defmodule BubblesNotificationsTest do
              BubblesNotifications.send_push_to_device(client, "device-123", %{
                title: "Direct push",
                body: "Device message",
-               data: %{additionalProp1: %{}}
+               data: %{additionalProp1: %{}},
+               attribute_filters: %{
+                 conditions: [
+                   %{key: "country", operator: "equals", value: "NL"}
+                 ]
+               }
              })
   end
 
@@ -199,6 +244,59 @@ defmodule BubblesNotificationsTest do
                  title: "Segment push",
                  body: "Alias message",
                  data: %{type: "segment"}
+               }
+             )
+  end
+
+  test "create_notification_user_ids_aliases/4 sends attribute filters when provided", %{
+    bypass: bypass
+  } do
+    Bypass.expect_once(bypass, "POST", "/api/notifications/bulk-send", fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      assert Jason.decode!(body) == %{
+               "app_id" => 7,
+               "user_ids" => [],
+               "aliases" => ["beta"],
+               "title" => "Beta update",
+               "body" => "A new build is ready.",
+               "data" => %{"screen" => "release_notes"},
+               "attribute_filters" => %{
+                 "conditions" => [
+                   %{
+                     "key" => "tags",
+                     "path" => ["nutrition_notifications"],
+                     "operator" => "equals",
+                     "value" => "true"
+                   }
+                 ]
+               }
+             }
+
+      Plug.Conn.resp(conn, 201, ~s({"id":102,"app_id":7}))
+    end)
+
+    client = BubblesNotifications.initialize(7, "test-api-key")
+
+    assert {:ok, %{"id" => 102, "app_id" => 7}} =
+             BubblesNotifications.create_notification_user_ids_aliases(
+               client,
+               [],
+               ["beta"],
+               %{
+                 title: "Beta update",
+                 body: "A new build is ready.",
+                 data: %{"screen" => "release_notes"},
+                 attribute_filters: %{
+                   conditions: [
+                     %{
+                       key: "tags",
+                       path: ["nutrition_notifications"],
+                       operator: "equals",
+                       value: "true"
+                     }
+                   ]
+                 }
                }
              )
   end
