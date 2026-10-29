@@ -18,6 +18,50 @@ defmodule BubblesNotificationsTest do
     %{bypass: bypass, base_url: base_url}
   end
 
+  test "bulk sends preserve silent delivery and routing data", %{bypass: bypass} do
+    Bypass.expect_once(bypass, "POST", "/api/notifications/bulk-send", fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      assert Jason.decode!(body) == %{
+               "app_id" => 7,
+               "user_ids" => ["123"],
+               "aliases" => [],
+               "title" => "",
+               "body" => "",
+               "silent" => true,
+               "data" => %{"planning_changed" => true}
+             }
+
+      Plug.Conn.resp(conn, 201, ~s({"id":101,"app_id":7,"silent":true}))
+    end)
+
+    client = BubblesNotifications.initialize(7, "test-api-key")
+
+    assert {:ok, %{"silent" => true}} =
+             BubblesNotifications.create_notification_user_ids_aliases(
+               client,
+               ["123"],
+               [],
+               %{silent: true, data: %{planning_changed: true}}
+             )
+  end
+
+  test "silent sends accept string keys and still require map data", %{bypass: bypass} do
+    Bypass.expect_once(bypass, "POST", "/api/notifications/create", fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      assert Jason.decode!(body)["silent"]
+      Plug.Conn.resp(conn, 201, ~s({"id":102}))
+    end)
+
+    client = BubblesNotifications.initialize(7, "test-api-key")
+
+    assert {:ok, _} =
+             BubblesNotifications.create_notification(client, %{"silent" => true, "data" => %{}})
+
+    assert {:error, %ArgumentError{}} =
+             BubblesNotifications.create_notification(client, %{silent: true, data: []})
+  end
+
   test "initialize/2 builds a client with configured base url", %{base_url: base_url} do
     client = BubblesNotifications.initialize(7, "test-api-key")
 

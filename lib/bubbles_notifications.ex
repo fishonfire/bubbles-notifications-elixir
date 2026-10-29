@@ -28,16 +28,18 @@ defmodule BubblesNotifications do
         }
 
   @type message_params :: %{
-          required(:title) => String.t(),
-          required(:body) => String.t(),
-          required(:data) => map()
+          optional(:title) => String.t(),
+          optional(:body) => String.t(),
+          required(:data) => map(),
+          optional(:silent) => boolean()
         }
 
   @type attribute_filters :: map()
   @type notification_params :: %{
-          required(:title) => String.t(),
-          required(:body) => String.t(),
+          optional(:title) => String.t(),
+          optional(:body) => String.t(),
           required(:data) => map(),
+          optional(:silent) => boolean(),
           optional(:attribute_filters) => attribute_filters()
         }
   @type device_push_params :: message_params()
@@ -81,6 +83,7 @@ defmodule BubblesNotifications do
     * `:title`
     * `:body`
     * `:data`
+    * `:silent` (optional; true sends data only and makes title/body optional)
     * `:attribute_filters` (optional)
 
   `:app_id` is taken from the initialized client.
@@ -102,6 +105,7 @@ defmodule BubblesNotifications do
     * `:title`
     * `:body`
     * `:data`
+    * `:silent` (optional; true sends data only and makes title/body optional)
 
   `:app_id` is taken from the initialized client.
   """
@@ -125,6 +129,7 @@ defmodule BubblesNotifications do
     * `:title`
     * `:body`
     * `:data`
+    * `:silent` (optional; true sends data only and makes title/body optional)
     * `:attribute_filters` (optional)
 
   `:app_id` is taken from the initialized client.
@@ -148,6 +153,27 @@ defmodule BubblesNotifications do
   end
 
   defp build_message_payload(attrs) do
+    case fetch_optional(attrs, :silent) do
+      {:ok, true} -> build_silent_payload(attrs)
+      _ -> build_alert_payload(attrs)
+    end
+  end
+
+  defp build_silent_payload(attrs) do
+    case fetch_required(attrs, :data) do
+      {:ok, data} when is_map(data) ->
+        {:ok, %{title: "", body: "", data: data, silent: true}}
+
+      {:ok, invalid_data} ->
+        {:error,
+         ArgumentError.exception("expected :data to be a map, got: #{inspect(invalid_data)}")}
+
+      {:error, message} ->
+        {:error, ArgumentError.exception(message)}
+    end
+  end
+
+  defp build_alert_payload(attrs) do
     with {:ok, title} <- fetch_required(attrs, :title),
          {:ok, body} <- fetch_required(attrs, :body),
          {:ok, data} when is_map(data) <- fetch_required(attrs, :data) do
